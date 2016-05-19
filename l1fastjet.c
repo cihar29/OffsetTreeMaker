@@ -18,7 +18,7 @@ using namespace std;
 
 void setStyle();
 
-void l1fastjet(){
+void l1fastjet(TString pf_type="all"){
 
   const int ETA_BINS = 82;
   double etabins[ETA_BINS+1] =
@@ -30,16 +30,15 @@ void l1fastjet(){
    4.191, 4.363, 4.538, 4.716, 4.889, 5.191};
 
   int Rlabel = 4;
-  TString pf_type = "all";
   bool nPU_derived = true;
   bool rhoCentral = false;
 
-  TFile* data_root = TFile::Open( Form("Data76x_R%i.root", Rlabel) );
-  TFile* mc_root = TFile::Open( Form("MC76x_R%i.root", Rlabel) );
+  TFile* data_root = TFile::Open( Form("Data_R%i.root", Rlabel) );
+  TFile* mc_root = TFile::Open( Form("MC_R%i.root", Rlabel) );
 
-  ifstream scale_file( Form("plots/scalefactor/Fall15_25nsV1_DataMcSF_L1RC_AK%iPF", Rlabel) + pf_type + ".txt" );
+  ifstream scale_file( Form("plots/scalefactor/Spring16_25nsV1_DataMcSF_L1RC_AK%iPF", Rlabel) + pf_type + ".txt" );
 
-  ifstream mc_file( Form("Fall15_25nsV1_MC_L1FastJet_AK%iPF", Rlabel) + pf_type + ".txt" );
+  ifstream mc_file( Form("Spring16_25nsV1_MC_L1FastJet_AK%iPF", Rlabel) + pf_type + ".txt" );
   string scale_line, mc_line;
 
   //read first line
@@ -150,7 +149,7 @@ void l1fastjet(){
     new_p1[i] = sf[i] * mc_p1[i];
   }
 
-  ofstream writeFile( Form("Fall15_25nsV1_DATA_L1FastJet_AK%iPF", Rlabel) + pf_type + ".txt" );
+  ofstream writeFile( Form("Spring16_25nsV1_DATA_L1FastJet_AK%iPF", Rlabel) + pf_type + ".txt" );
   mc_file.clear();
   mc_file.seekg(0, mc_file.beg);
 
@@ -197,7 +196,7 @@ void l1fastjet(){
   h->GetXaxis()->SetTitle("#eta");
   h->GetYaxis()->SetTitle("Scale Factor");
   h->GetYaxis()->SetTitleOffset(1.2);
-  h->GetYaxis()->SetRangeUser(0.9, 1.2);
+  h->GetYaxis()->SetRangeUser(0.95, 1.25);
   h->Draw();
 
   graph->SetMarkerStyle(20);

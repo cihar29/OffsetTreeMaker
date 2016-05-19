@@ -105,7 +105,7 @@ void scalefactor(TString pf_type="all", int n1=1, int n2=25){
   TProfile* data_rho_nPU = (TProfile*) data_root->Get(hname);
   TProfile* mc_rho_nPU = (TProfile*) mc_root->Get(hname);
 
-  ofstream writeFile(Form("./plots/scalefactor/Fall15_25nsV1_DataMcSF_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
+  ofstream writeFile(Form("./plots/scalefactor/Spring16_25nsV1_DataMcSF_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
   writeFile << "{1   JetEta   1   Rho   [0]+[1]*x+[2]*pow(x,2)   Data/MC   L1FastJet}" << endl;
 
   TF1* fit = new TF1("fit", "1++x++x*x");
