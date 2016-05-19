@@ -30,14 +30,12 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
   const double R = 0.4;
   int Rlabel = R*10;
 
-  TFile* mcFile = TFile::Open( Form("MC76x_R%i.root", Rlabel) );
-  TFile* dataFile = TFile::Open( Form("Data76x_R%i.root", Rlabel) );
+  TFile* mcFile = TFile::Open( Form("MC_R%i.root", Rlabel) );
+  TFile* dataFile = TFile::Open( Form("Data_R%i.root", Rlabel) );
 
   TString var_type = "nPU"; // nPU, nPV
   bool isIndirect = true;   // indirectRho
   bool rhoCentral = false;
-
-  //int n1 = 1, n2 = 25;
                 
   const int nPoints = n2-n1;
 
@@ -118,8 +116,8 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
     var_type = "indirectRho";
   }
 
-  ofstream writeMC("./plots/" + var_type + "/" + pf_type + Form("/Fall15_25nsV1_MC_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
-  ofstream writeData("./plots/" + var_type + "/" + pf_type + Form("/Fall15_25nsV1_DATA_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
+  ofstream writeMC("./plots/" + var_type + "/" + pf_type + Form("/Spring16_25nsV1_MC_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
+  ofstream writeData("./plots/" + var_type + "/" + pf_type + Form("/Spring16_25nsV1_DATA_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
 
   TString header;
   if ( var_type.EqualTo("nPV") || var_type.EqualTo("nPU") )
@@ -141,7 +139,6 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
     vector<double> mc_x, data_x, mc_y, data_y, mc_error, data_error;
 		
     for (int n=0; n<nPoints; n++){
-      if (n == 6 || n == 7 || n == 8) continue;
 
       double mcX = n1+n+0.5;
       double dataX = n1+n+0.5;
@@ -183,9 +180,7 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
     else if ( var_type.EqualTo("indirectRho") ) xTitle = "<#rho> (GeV)";
 
     TCanvas* c = new TCanvas("c", "c", 600, 600);
-    //float topX = 15;
     TH1F* h = new TH1F("h", "h", 100, 0, topX);
-    //float topY = 30;
 
     h->GetXaxis()->SetTitle(xTitle);
     h->GetYaxis()->SetTitle("Offset p_{T} (GeV)");

@@ -19,20 +19,19 @@ using namespace std;
 
 void setStyle();
 
-void scalefactor(int low_bin=2, int high_bin=30, float rho_start=4, float rho_end=12){
+void scalefactor(TString pf_type="all", int n1=1, int n2=25){
 
   setStyle();
 
   int Rlabel = 4;
-  TFile* data_root = TFile::Open( Form("Data76x_R%i.root", Rlabel) );
-  TFile* mc_root = TFile::Open( Form("MC76x_R%i.root", Rlabel) );
+  TFile* data_root = TFile::Open( Form("Data_R%i.root", Rlabel) );
+  TFile* mc_root = TFile::Open( Form("MC_R%i.root", Rlabel) );
 
-  TString pf_type = "all";
   bool nPU_derived = true;
   bool rhoCentral = false;
 
-  ifstream data_file("./plots/indirectRho/" + pf_type + Form("/Fall15_25nsV1_DATA_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
-  ifstream mc_file("./plots/indirectRho/" + pf_type + Form("/Fall15_25nsV1_MC_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
+  ifstream data_file("./plots/indirectRho/" + pf_type + Form("/Spring16_25nsV1_DATA_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
+  ifstream mc_file("./plots/indirectRho/" + pf_type + Form("/Spring16_25nsV1_MC_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
   string data_line, mc_line;
 
   //read first line
@@ -104,14 +103,6 @@ void scalefactor(int low_bin=2, int high_bin=30, float rho_start=4, float rho_en
   }
 
   TProfile* data_rho_nPU = (TProfile*) data_root->Get(hname);
-
-  for (int i=1; i<=100; i++)
-    cout << i << "\t" << data_rho_nPU->GetBinCenter(i) << "\t" << data_rho_nPU->GetBinContent(i) << endl;
-  for (int i=29; i<=34; i++)
-    data_rho_nPU->SetBinContent(i, 0);
-
-  //int low_bin = 2, high_bin = 30;
-
   TProfile* mc_rho_nPU = (TProfile*) mc_root->Get(hname);
 
   ofstream writeFile(Form("./plots/scalefactor/Fall15_25nsV1_DataMcSF_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
@@ -121,33 +112,17 @@ void scalefactor(int low_bin=2, int high_bin=30, float rho_start=4, float rho_en
   fit->SetLineColor(1);
   fit->SetLineWidth(2);
 
-  //float rho_start = 4;
-  //float rho_end = 12;
-
-  int size;
-  if (nPU_derived) size = (rho_end-rho_start+0.5)*2;
-  else size = rho_end-rho_start+1;
-
   for (int i=0; i<ETA_BINS; i++){
 
     vector<double> rho, scale_factor, sf_error;
 
-    for (int j=0; j<size; j++){
+    for (int n=n1; n<n2; n++){
 
-      double data_rho;
-      if (nPU_derived) data_rho = rho_start+j/2.0;
-      else data_rho = rho_start+j;
-
-      if (data_rho==8.5 || data_rho==9 || data_rho==9.5) continue;
-
-      rho.push_back(data_rho);
+      double data_rho = data_rho_nPU->GetBinContent( data_rho_nPU->FindBin(n) );
+      rho.push_back( data_rho );
       double data_offset = data_p0[i] + data_p1[i]*data_rho + data_p2[i]*data_rho*data_rho;
 
-      int data_mu_bin = 0;
-      data_rho_nPU->GetBinWithContent(data_rho, data_mu_bin, low_bin, high_bin, 1);
-      double data_mu = data_rho_nPU->GetBinCenter( data_mu_bin );
-
-      double mc_rho = mc_rho_nPU->GetBinContent( mc_rho_nPU->FindBin( data_mu ) );
+      double mc_rho = mc_rho_nPU->GetBinContent( mc_rho_nPU->FindBin(n) );
       double mc_offset = mc_p0[i] + mc_p1[i]*mc_rho + mc_p2[i]*mc_rho*mc_rho;
 
       scale_factor.push_back( data_offset / mc_offset );
@@ -161,7 +136,8 @@ void scalefactor(int low_bin=2, int high_bin=30, float rho_start=4, float rho_en
               << setw(15) << fit->GetParameter(0) << setw(15) << fit->GetParameter(1) << setw(15) << fit->GetParameter(2) << endl;
 
     TCanvas* c = new TCanvas("c", "c", 600, 600);
-    TH1F* h = new TH1F("h", "h", size-1, rho_start, rho_end);
+    int start = rho[0]; int end = int(rho[rho.size()-1])+1;
+    TH1F* h = new TH1F("h", "h", (end-start)*2, start, end);
     int topY = 2;
 
     h->GetXaxis()->SetTitle("#rho_{Data} (GeV)");
