@@ -33,8 +33,8 @@ void l1fastjet(TString pf_type="all"){
   bool nPU_derived = true;
   bool rhoCentral = false;
 
-  TFile* data_root = TFile::Open( Form("Data_R%i.root", Rlabel) );
-  TFile* mc_root = TFile::Open( Form("MC_R%i.root", Rlabel) );
+  TFile* data_root = TFile::Open( Form("Data7716_R%i.root", Rlabel) );
+  TFile* mc_root = TFile::Open( Form("MC7716_R%i.root", Rlabel) );
 
   ifstream scale_file( Form("plots/scalefactor/Spring16_25nsV1_DataMcSF_L1RC_AK%iPF", Rlabel) + pf_type + ".txt" );
 
@@ -175,7 +175,7 @@ void l1fastjet(TString pf_type="all"){
         mc_line.erase(0, 1);
 
       if (col_num == 9) str = to_string(new_p0[i]);
-      else if (col_num == 10) str = to_string(new_p1[i]);
+      else if (col_num == 10) str = to_string( new_p1[i] * mc_rho_mean / rho_nominal );
 
       writeFile << str << setw(15);
     }
@@ -196,7 +196,7 @@ void l1fastjet(TString pf_type="all"){
   h->GetXaxis()->SetTitle("#eta");
   h->GetYaxis()->SetTitle("Scale Factor");
   h->GetYaxis()->SetTitleOffset(1.2);
-  h->GetYaxis()->SetRangeUser(0.95, 1.25);
+  h->GetYaxis()->SetRangeUser(0.9, 1.3);
   h->Draw();
 
   graph->SetMarkerStyle(20);
@@ -236,7 +236,7 @@ void l1fastjet(TString pf_type="all"){
   text.SetTextSize(0.035);
   text.SetTextColor(1);
   text.SetTextFont(42);
-  text.DrawLatex(0.56, 0.96, "Run 2015D - 2.1 fb^{-1} (13 TeV)");
+  text.DrawLatex(0.53, 0.96, "Run 2016B - 6.26 fb^{-1} (13 TeV)");
 
   c->Print("l1fastjet_scalefactor_eta_PF" + pf_type + ".pdf");
 }
