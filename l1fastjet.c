@@ -146,7 +146,7 @@ void l1fastjet(TString pf_type="all"){
 
     sf[i] = scale_p0[i] + scale_p1[i]*rho_nominal + scale_p2[i]*rho_nominal*rho_nominal;
     new_p0[i] = sf[i] * mc_p0[i];
-    new_p1[i] = sf[i] * mc_p1[i];
+    new_p1[i] = sf[i] * mc_p1[i] * mc_rho_mean / rho_nominal;
   }
 
   ofstream writeFile( Form("Spring16_25nsV1_DATA_L1FastJet_AK%iPF", Rlabel) + pf_type + ".txt" );
@@ -175,7 +175,7 @@ void l1fastjet(TString pf_type="all"){
         mc_line.erase(0, 1);
 
       if (col_num == 9) str = to_string(new_p0[i]);
-      else if (col_num == 10) str = to_string( new_p1[i] * mc_rho_mean / rho_nominal );
+      else if (col_num == 10) str = to_string(new_p1[i]);
 
       writeFile << str << setw(15);
     }
