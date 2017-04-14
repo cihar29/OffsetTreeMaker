@@ -30,8 +30,8 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
   const double R = 0.4;
   int Rlabel = R*10;
 
-  TFile* mcFile = TFile::Open( Form("MC_R%i.root", Rlabel) );
-  TFile* dataFile = TFile::Open( Form("Data_R%i.root", Rlabel) );
+  TFile* mcFile = TFile::Open( Form("MC_RunBCD_R%i.root", Rlabel) );
+  TFile* dataFile = TFile::Open( Form("Data_RunBCD_R%i.root", Rlabel) );
 
   TString var_type = "nPU"; // nPU, nPV
   bool isIndirect = true;   // indirectRho
@@ -162,8 +162,14 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
     mcGraph->Fit(f_mc, "Q");
     dataGraph->Fit(f_data, "Q");
 
-    const double PI = 3.14159265359;
-    double area = PI*R*R;
+    double area = M_PI*R*R;
+
+    double x = fabs(etabins[0]) - 0.5*fabs(etabins[i]+etabins[i+1]);
+    if (x < R) {
+      double theta = 2*acos(x/R);
+      double area_seg = 0.5*R*R*theta - x*R*sin(theta/2);
+      area -= area_seg;
+    }
 
     writeMC << etabins[i] << setw(8) << etabins[i+1] << setw(8) << 9 << setw(6) << 1 << setw(6) << 3500 << setw(6)
             << 0 << setw(6) << 10 << setw(6) << 0 << setw(6) << 200
