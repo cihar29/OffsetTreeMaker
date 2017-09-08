@@ -1,16 +1,6 @@
-//Chad Harrington 12/7/2015
-//EXECUTE as root -l -b -q offsetpT_stack.c
+//Chad Harrington 6/14/2017
+//EXECUTE as root -l -b -q 'offsetpT_stack.c ("MC_R4.root", "Data_R4.root", "nPU", Id, ratio, "label")'
 
-#include "TFile.h"
-#include "TString.h"
-#include "TH1.h"
-#include "TProfile.h"
-#include "THStack.h"
-#include "TCanvas.h"
-#include "TPad.h"
-#include "TStyle.h"
-
-#include <vector>
 using namespace std;
 
 void setStyle();
@@ -24,161 +14,121 @@ float etabins[ETA_BINS+1] =
    1.566, 1.653, 1.74, 1.83, 1.93, 2.043, 2.172, 2.322, 2.5, 2.65, 2.853, 2.964, 3.139, 3.314, 3.489, 3.664, 3.839, 4.013,
    4.191, 4.363, 4.538, 4.716, 4.889, 5.191};
 
-void offsetpT_stack(){
+enum Id{
+  ne=0, hfe, nh, hfh, chu, chm, untrk, numId, all, hf_dep
+};
 
-  TFile* mcFile = TFile::Open("MC_R4.root");
-  TFile* dataFile = TFile::Open("Data_R4.root");
+void offsetpT_stack( TString mcName="histoMC_R4.root", TString dataName="histoData_R4.root", TString bin_var="nPU", Id id=all, bool ratio=true,
+                     TString label="Run 2016 - 35.9 fb^{-1} (13 TeV)") {
 
-  int var_choice;
-  cout << "\n1) nPV\n2) nPU\n\n### Enter Variable type (number): ";
-  cin >> var_choice;
-  cout << endl;
+  TFile* mcFile = TFile::Open(mcName);
+  TFile* dataFile = TFile::Open(dataName);
 
-  TString var_type;
-  int nPoints;
-  if (var_choice == 1) { var_type = "nPV"; nPoints = 50; }
-  else { var_type = "nPU"; nPoints = 50; }
+  TString ids[] = {"ne", "hfe", "nh", "hfh", "chu", "chm", "untrk", "NumIds", "all", "hf_dep"};
 
-  int n1;
-  cout << "### Enter starting number of " << var_type << " ( integer from [0:" << nPoints << ") ): ";
-  cin >> n1;
-  cout << endl;
-  int n2;
-  cout << "### Enter ending number of " << var_type << " ( integer from [" << n1 << ":" << nPoints << ") ): ";
-  cin >> n2;
-  cout << endl;
-
-  if (n1 < 0 || n1 > n2)
-    n1 = 10;
-  if (n2 >= nPoints || n2 < n1)
-    n2 = 35;
-
-  int simple_weight = -1;
-  if (n1 != n2){
-    cout << "1) Simple Weighting\n2) Regular Weighting\n\n### Enter weighting option: ";
-    cin >> simple_weight;
-    cout << endl;
-  }
-
-  enum Id{
-    ne=0, hfe, nh, hfh, chu, chm, untrk, numId, all, hf_dep
-  };
-  TString ids[] = {"ne", "hfe", "nh", "hfh", "chu", "chm", "untrk"};
-
-  int pf_choice;
-  cout << "1) All\n2) Photons\n3) EM deposits\n4) Neutral Hadrons\n5) Hadronic Deposits\n"
-       << "6) Unassociated Charged Hadrons\n7) Associated Charged Hadrons\n8) Lost Tracks\n"
-       << "9) HF Deposits\n\n### Enter PF Particle type: ";
-  cin >> pf_choice;
-  cout << endl;
-
-  if (pf_choice == 1) pf_choice = all;
-  else if (ne <= pf_choice-2 && pf_choice-2 < numId) pf_choice -= 2;
-  else if (pf_choice == numId+2) pf_choice = hf_dep;
-  else pf_choice = all;
-
-  char plot_ratio = 'n';
-  cout << "### Include ratio plot (y/n)? ";
-  cin >> plot_ratio;
-  cout << endl;
+  //nPV or nPU
+  TH1F* h_bin_var = (TH1F*) dataFile->Get(bin_var);
+  //int n1 = h_bin_var->GetBinCenter( h_bin_var->GetMaximumBin() );
+  int n1 = h_bin_var->GetMean();
 
   vector<TH1D*> v_MC (numId);
   vector<TH1D*> v_Data (numId);
 
   TString hname;
-  for (int i=0; i<numId; i++){
+  for (int i=0; i<numId; i++) {
 
-    hname = Form("p_offset_eta_%s%i_", var_type.Data(), n1) + ids[i];
+    hname = Form("p_offset_eta_%s%i_", bin_var.Data(), n1) + ids[i];
 
     v_MC[i] = ((TProfile*) mcFile->FindObjectAny(hname))->ProjectionX(ids[i]+"MC");
     v_Data[i] = ((TProfile*) dataFile->FindObjectAny(hname))->ProjectionX(ids[i]+"Data");
+
+    ///Regular Scaling///
+    v_MC[i]->Scale( 1.0 / n1 );
+    v_Data[i]->Scale( 1.0 / n1 );
   }
 
-  //Weights//
+  /////////////////////////////////////////
+  /// Slightly More Complicated Scaling ///
+  /////////////////////////////////////////
+/*
+  int n2 = 50;
+  for (int i=0; i<numIds; i++) {
 
-  if (n1 == n2){
-    for (int i=0; i<numId; i++){
-      v_MC[i]->Scale( 1.0 / n1 );
-      v_Data[i]->Scale( 1.0 / n1 );
-    }
+    v_MC[i]->Scale(-1);
+    v_Data[i]->Scale(-1);
+
+    hname = Form("p_offset_eta_%s%i_", bin_var.Data(), n2) + ids[i];
+
+    v_MC[i]->Add( ((TProfile*) mcFile->FindObjectAny(hname))->ProjectionX(ids[i]+"MC2") );
+    v_Data[i]->Add( ((TProfile*) dataFile->FindObjectAny(hname))->ProjectionX(ids[i]+"Data2") );
+
+    v_MC[i]->Scale( 1.0 / (n2-n1) );
+    v_Data[i]->Scale( 1.0 / (n2-n1) );
   }
-  else if (simple_weight == 1){
-    for (int i=0; i<numId; i++){
+*/
+  ///////////////////////////
+  /// Complicated Scaling ///
+  ///////////////////////////
+/*
+  TH1D* h_weight_MC = (TH1D*) mcFile->Get(bin_var);
+  TH1D* h_weight_Data = (TH1D*) dataFile->Get(bin_var);
 
-      v_MC[i]->Scale(-1);
-      v_Data[i]->Scale(-1);
-
-      hname = Form("p_offset_eta_%s%i_", var_type.Data(), n2) + ids[i];
-
-      v_MC[i]->Add( ((TProfile*) mcFile->FindObjectAny(hname))->ProjectionX(ids[i]+"MC2") );
-      v_Data[i]->Add( ((TProfile*) dataFile->FindObjectAny(hname))->ProjectionX(ids[i]+"Data2") );
-
-      v_MC[i]->Scale( 1.0 / (n2-n1) );
-      v_Data[i]->Scale( 1.0 / (n2-n1) );
-    }
+  if (h_weight_Data->GetXaxis()->GetBinWidth(1) == 0.5) {
+    h_weight_MC->Rebin();
+    h_weight_Data->Rebin();
   }
-  else{
+  h_weight_MC->Scale( 1 / h_weight_MC->Integral() );
+  h_weight_Data->Scale( 1 / h_weight_Data->Integral() );
 
-    TH1D* h_weight_MC = (TH1D*) mcFile->Get(var_type);
-    TH1D* h_weight_Data = (TH1D*) dataFile->Get(var_type);
+  for (int i=0; i<numIds; i++) {
 
-    if (h_weight_Data->GetXaxis()->GetBinWidth(1) == 0.5){
-      h_weight_MC->Rebin();
-      h_weight_Data->Rebin();
+    double total_weight_MC = 0;
+    double total_weight_Data = 0;
+
+    TH1D* sum_MC = new TH1D("sum_MC", "sum_MC", ETA_BINS, etabins);
+    TH1D* sum_Data = new TH1D("sum_Data", "sum_Data", ETA_BINS, etabins);
+
+    for (int j=n1+1; j<=n2; j++) {
+
+      hname = Form("p_offset_eta_%s%i_", bin_var.Data(), j) + ids[i];
+
+      TH1D* temp_MC = ((TProfile*) mcFile->FindObjectAny(hname))->ProjectionX("temp_MC");
+      TH1D* temp_Data = ((TProfile*) dataFile->FindObjectAny(hname))->ProjectionX("temp_Data");
+
+      temp_MC->Add(v_MC[i], -1);
+      temp_Data->Add(v_Data[i], -1);
+
+      double weight_MC = h_weight_MC->GetBinContent( h_weight_MC->FindBin(j) );
+      double weight_Data = h_weight_Data->GetBinContent( h_weight_Data->FindBin(j) );
+
+      temp_MC->Scale( weight_MC / (j-n1) );
+      temp_Data->Scale( weight_Data / (j-n1) );
+
+      sum_MC->Add(temp_MC);
+      sum_Data->Add(temp_Data);
+
+      delete temp_MC;
+      delete temp_Data;
+
+      total_weight_MC += weight_MC;
+      total_weight_Data += weight_Data;
     }
+    v_MC[i] = (TH1D*) sum_MC->Clone(ids[i]);
+    v_Data[i] = (TH1D*) sum_Data->Clone(ids[i]);
 
-    h_weight_MC->Scale( 1 / h_weight_MC->Integral() );
-    h_weight_Data->Scale( 1 / h_weight_Data->Integral() );
+    delete sum_MC;
+    delete sum_Data;
 
-    for (int i=0; i<numId; i++){
-
-      double total_weight_MC = 0;
-      double total_weight_Data = 0;
-
-      TH1D* sum_MC = new TH1D("sum_MC", "sum_MC", ETA_BINS, etabins);
-      TH1D* sum_Data = new TH1D("sum_Data", "sum_Data", ETA_BINS, etabins);
-
-      for (int j=n1+1; j<=n2; j++){
-
-        hname = Form("p_offset_eta_%s%i_", var_type.Data(), j) + ids[i];
-
-        TH1D* temp_MC = ((TProfile*) mcFile->FindObjectAny(hname))->ProjectionX("temp_MC");
-        TH1D* temp_Data = ((TProfile*) dataFile->FindObjectAny(hname))->ProjectionX("temp_Data");
-
-        temp_MC->Add(v_MC[i], -1);
-        temp_Data->Add(v_Data[i], -1);
-
-        double weight_MC = h_weight_MC->GetBinContent( h_weight_MC->FindBin(j) );
-        double weight_Data = h_weight_Data->GetBinContent( h_weight_Data->FindBin(j) );
-
-        temp_MC->Scale( weight_MC / (j-n1) );
-        temp_Data->Scale( weight_Data / (j-n1) );
-
-        sum_MC->Add(temp_MC);
-        sum_Data->Add(temp_Data);
-
-        delete temp_MC;
-        delete temp_Data;
-
-        total_weight_MC += weight_MC;
-        total_weight_Data += weight_Data;
-      }
-      v_MC[i] = (TH1D*) sum_MC->Clone("v_MC[i]");
-      v_Data[i] = (TH1D*) sum_Data->Clone("v_Data[i]");
-
-      delete sum_MC;
-      delete sum_Data;
-
-      v_MC[i]->Scale( 1 / total_weight_MC );
-      v_Data[i]->Scale( 1 /total_weight_Data );
-    }
+    v_MC[i]->Scale( 1 / total_weight_MC );
+    v_Data[i]->Scale( 1 /total_weight_Data );
   }
-
+*/
   //Make PF all and PF chs for ratio plot before alterations//
 
   TH1D* all_Data = (TH1D*) v_Data[untrk-1]->Clone("all_Data");  //don't include lost tracks
   TH1D* all_MC = (TH1D*) v_MC[untrk-1]->Clone("all_MC");
 
+  // ne + hfe + nh + hfh + chu + chm
   for (int i=0; i<untrk-1; i++){
     all_Data->Add(v_Data[i]);
     all_MC->Add(v_MC[i]);
@@ -188,6 +138,7 @@ void offsetpT_stack(){
   TH1D* chs_Data = (TH1D*) v_Data[chu]->Clone("chs_Data");
   TH1D* chs_MC = (TH1D*) v_MC[chu]->Clone("chs_MC");
 
+  //ne + hfe + nh + hfh + chu
   for (int i=0; i<chu; i++){
     chs_Data->Add(v_Data[i]);
     chs_MC->Add(v_MC[i]);
@@ -217,19 +168,18 @@ void offsetpT_stack(){
   setStyle();
 
   TString yTitle = "";
-  if ( var_type.EqualTo("nPV") ) yTitle = "<Offset p_{T}> / <N_{PV}> (GeV)";
+  if ( bin_var.EqualTo("nPV") ) yTitle = "<Offset p_{T}> / <N_{PV}> (GeV)";
   else yTitle = "<Offset p_{T}> / <#mu> (GeV)";
 
   TCanvas* c = new TCanvas("c", "c", 600, 600);
   gStyle->SetOptStat(0);
 
-  float b_scale = 0.3;
-  float t_scale = 1 - b_scale;
+  float b_scale = 0.3, t_scale = 1 - b_scale;
 
   TPad* top = new TPad("top", "top", 0, b_scale, 1, 1);
   TPad* bottom = new TPad("bottom", "bottom", 0, 0, 1, b_scale);
 
-  if ( plot_ratio == 'y' ){
+  if (ratio) {
     top->SetTopMargin(0.05);
     top->SetBottomMargin(0.05);
     top->Draw();
@@ -242,16 +192,23 @@ void offsetpT_stack(){
   TH1D* h1 = new TH1D("h1", "h1", ETA_BINS, etabins);
   h1->GetYaxis()->SetTitle(yTitle);
 
-  if ( plot_ratio == 'y' ) {
+  if (ratio) {
     h1->GetXaxis()->SetTickLength(0.03/t_scale);
     h1->GetXaxis()->SetLabelSize(0);
-    h1->GetYaxis()->SetTitleSize(0.06/t_scale);
-    h1->GetYaxis()->SetTitleOffset(0.8);
-    h1->GetYaxis()->SetLabelSize(0.05/t_scale);
+    h1->GetYaxis()->SetTitleSize(0.05/t_scale);
+    h1->GetYaxis()->SetTitleOffset(0.9);
+    h1->GetYaxis()->SetLabelSize(0.04/t_scale);
   }
-  else
+  else {
     h1->GetXaxis()->SetTitle("#eta");
+    h1->GetXaxis()->SetTitleSize(0.03/t_scale);
+    h1->GetXaxis()->SetTitleOffset(1.1);
+    h1->GetXaxis()->SetLabelSize(0.03/t_scale);
 
+    h1->GetYaxis()->SetTitleSize(0.03/t_scale);
+    h1->GetYaxis()->SetTitleOffset(1.3);
+    h1->GetYaxis()->SetLabelSize(0.03/t_scale);
+  }
   h1->Draw();
 
   v_MC[ne]   ->SetMarkerStyle(kMultiply);
@@ -270,7 +227,18 @@ void offsetpT_stack(){
   Had_clone     ->SetMarkerStyle(kOpenTriangleUp);
   v_Data[chu]   ->SetMarkerStyle(kOpenCircle);
   v_Data[chm]   ->SetMarkerStyle(kOpenCircle);
-  v_Data[untrk]->SetMarkerStyle(kOpenCircle);
+  v_Data[untrk] ->SetMarkerStyle(kOpenCircle);
+
+  //for error bars
+  v_Data[ne]    ->SetLineColor(kBlack);
+  v_Data[hfe]   ->SetLineColor(kBlack);
+  EM_clone      ->SetLineColor(kBlack);
+  v_Data[nh]    ->SetLineColor(kBlack);
+  v_Data[hfh]   ->SetLineColor(kBlack);
+  Had_clone     ->SetLineColor(kBlack);
+  v_Data[chu]   ->SetLineColor(kBlack);
+  v_Data[chm]   ->SetLineColor(kBlack);
+  v_Data[untrk] ->SetLineColor(kBlack);
 
   v_MC[ne]   ->SetFillColor(kBlue);
   v_MC[hfe]  ->SetFillColor(kViolet+2);
@@ -293,12 +261,7 @@ void offsetpT_stack(){
   TLatex text;
   text.SetNDC();
 
-  //text.SetTextSize(0.045);
-  //text.SetTextFont(42);
-  //text.DrawLatex(2, 1.41, "19.7 fb^{-1} (8 TeV)");
-
-  if (pf_choice == all){
-    float topY = 0.7;
+  if (id == all) {
 
     v_Data[ne]   ->SetAxisRange(-2.9,2.9);
     v_Data[hfe]  ->SetAxisRange(-5,-2.6);
@@ -310,13 +273,12 @@ void offsetpT_stack(){
     v_Data[chm]  ->SetAxisRange(-2.9,2.9);
     v_Data[untrk]->SetAxisRange(-2.9,2.9);
 
-    h1->GetYaxis()->SetTitleOffset(1.1);
-    h1->GetYaxis()->SetRangeUser(0, topY);
+    h1->GetYaxis()->SetRangeUser( 0, 0.8 ); //dataStack->GetMaximum()*1.7 );
     mcStack->Draw("samehist");
-    dataStack->Draw("samep");
-    cloneStack->Draw("samep");
+    dataStack->Draw("samepe");
+    cloneStack->Draw("samepe");
 
-    TLegend* leg = new TLegend(.37,.6,.8,.9);
+    TLegend* leg = new TLegend(.4,.57,.67,.9);
     leg->SetBorderSize(0);
     leg->SetFillColor(0);
     leg->SetFillStyle(0);
@@ -334,70 +296,67 @@ void offsetpT_stack(){
 
     text.SetTextSize(0.065);
     text.SetTextFont(61);
-    text.DrawLatex(0.2, 0.85, "CMS");
-
-    //text.SetTextSize(0.055);
-    //text.SetTextFont(52);
-    //text.DrawLatex(0.2, 0.78, "Simulation");
+    text.DrawLatex(0.22, 0.85, "CMS");
 
     text.SetTextSize(0.045);
     text.SetTextFont(42);
-    text.DrawLatex(0.6, 0.96, "Run 2015D - 2.1 fb^{-1} (13 TeV)");
-    text.DrawLatex(0.85, 0.96, "(13 TeV)");
-    //text.DrawLatex(-4.5, 0.5, "R = 0.4");
+
+    if (ratio) text.DrawLatex(1-label.Length()/80., 0.96, label);
+    else       text.DrawLatex(1-label.Length()/68., 0.96, label);
+
+    //TString coneSize = dataName( dataName.Last('.')-1, 1 );
+    //text.DrawLatex(0.2, 0.8, "R = 0." + coneSize);
 
     gPad->RedrawAxis();
 
-    if (plot_ratio == 'y'){
-      h1->GetYaxis()->SetTitleOffset(0.8);
-
+    if (ratio) {
       bottom->cd();
       TH1D* h2 = new TH1D("h2", "h2", ETA_BINS, etabins);
 
       chs_Data->Divide(chs_MC);
       all_Data->Divide(all_MC);
 
-      h2->GetXaxis()->SetLabelSize(0.05/b_scale);
+      h2->GetXaxis()->SetLabelSize(0.04/b_scale);
       h2->GetXaxis()->SetTickLength(0.03/b_scale);
-      h2->GetXaxis()->SetTitleSize(0.06/b_scale);
-      h2->GetXaxis()->SetTitleOffset(0.75);
+      h2->GetXaxis()->SetTitleSize(0.05/b_scale);
+      h2->GetXaxis()->SetTitleOffset(0.8);
       h2->GetXaxis()->SetTitle("#eta");
-      h2->GetYaxis()->SetRangeUser(0.8, 1.2);
+      h2->GetYaxis()->SetRangeUser(0.5, 2); //chs_Data->GetMaximum()*1.1 );
       h2->GetYaxis()->SetNdivisions(5, 3, 0);
-      h2->GetYaxis()->SetLabelSize(0.05/b_scale);
+      h2->GetYaxis()->SetLabelSize(0.04/b_scale);
       h2->GetYaxis()->SetTitle("Data/MC");
-      h2->GetYaxis()->SetTitleSize(0.055/b_scale);
-      h2->GetYaxis()->SetTitleOffset(0.43);
+      h2->GetYaxis()->CenterTitle(true);
+      h2->GetYaxis()->SetTitleSize(0.05/b_scale);
+      h2->GetYaxis()->SetTitleOffset(0.4);
+
+      chs_Data->SetLineColor(kBlack);
+      all_Data->SetLineColor(kBlack);
 
       chs_Data->SetMarkerStyle(24);
       chs_Data->SetMarkerColor(2);
       all_Data->SetMarkerStyle(24);
       h2->Draw();
-      chs_Data->Draw("sameP");
-      all_Data->Draw("sameP");
+      chs_Data->Draw("samePE");
+      all_Data->Draw("samePE");
 
-      TLegend* leg = new TLegend(.55,.5,.65,.65);
-      leg->SetBorderSize(0);
-      leg->SetFillColor(0);
-      leg->SetFillStyle(0);
-      leg->SetTextSize(0.06);
-      leg->SetTextFont(42);
-      leg->AddEntry(all_Data,"PF","P");
-      leg->AddEntry(chs_Data,"PF chs","P");
-      leg->Draw();
+      TLegend* leg2 = new TLegend(.55,.75,.65,.9);
+      leg2->SetBorderSize(0);
+      leg2->SetFillColor(0);
+      leg2->SetFillStyle(0);
+      leg2->SetTextSize(0.06);
+      leg2->SetTextFont(42);
+      leg2->AddEntry(chs_Data,"PF chs","P");
+      leg2->AddEntry(all_Data,"PF","P");
+      leg2->Draw();
     }
   }
   else {
-    if (plot_ratio == 'y') h1->GetYaxis()->SetTitleOffset(0.8);
-    else h1->GetYaxis()->SetTitleOffset(1.1);
-
-    h1->GetYaxis()->SetRangeUser(0, 0.07);
     TH1D* hist_MC;
     TH1D* hist_Data;
 
-    if (pf_choice != hf_dep){
-      hist_MC = v_MC[pf_choice];
-      hist_Data = v_Data[pf_choice];
+    if (id != hf_dep){
+      hist_MC = v_MC[id];
+      hist_Data = v_Data[id];
     }
     else{
       //HF = EM Deposits + Hadronic Deposits
@@ -407,18 +366,20 @@ void offsetpT_stack(){
       hist_Data->Add( v_Data[hfh] );
     }
 
+    h1->GetYaxis()->SetRangeUser( 0, 0.5 ); //hist_Data->GetMaximum()*1.4 );
+
     TString title;
-    if (pf_choice == ne) { title = "Photons"; hist_Data->SetAxisRange(-2.9, 2.9); }
-    else if (pf_choice == hfe) title = "EM Deposits";
-    else if (pf_choice == nh) { title = "Neutral Hadrons"; hist_Data->SetAxisRange(-2.9, 2.9); }
-    else if (pf_choice == hfh) title = "Hadronic Deposits";
-    else if (pf_choice == chu) { title = "Unassoc. Charged Hadrons"; hist_Data->SetAxisRange(-2.9, 2.9); }
-    else if (pf_choice == chm) { title = "Assoc. Charged Hadrons"; hist_Data->SetAxisRange(-2.9, 2.9); }
-    else if (pf_choice == untrk) { title = "Lost Tracks"; hist_Data->SetAxisRange(-2.9, 2.9); }
+    if (id == ne) { title = "Photons"; hist_Data->SetAxisRange(-2.9, 2.9); }
+    else if (id == hfe) title = "EM Deposits";
+    else if (id == nh) { title = "Neutral Hadrons"; hist_Data->SetAxisRange(-2.9, 2.9); }
+    else if (id == hfh) title = "Hadronic Deposits";
+    else if (id == chu) { title = "Unassoc. Charged Hadrons"; hist_Data->SetAxisRange(-2.9, 2.9); }
+    else if (id == chm) { title = "Assoc. Charged Hadrons"; hist_Data->SetAxisRange(-2.9, 2.9); }
+    else if (id == untrk) { title = "Lost Tracks"; hist_Data->SetAxisRange(-2.9, 2.9); }
     else title = "HF Deposits";
 
-    hist_MC->Draw("same");
-    hist_Data->Draw("sameP");
+    hist_MC->Draw("sameHIST");
+    hist_Data->Draw("samePE");
 
     TLegend* leg = new TLegend(.7,.7,.9,.8);
     leg->SetBorderSize(0);
@@ -438,27 +399,18 @@ void offsetpT_stack(){
     text.SetTextFont(61);
     text.DrawLatex(0.25, 0.8, "CMS");
 
-    //text.SetTextSize(0.055);
-    //text.SetTextFont(52);
-    //text.DrawLatex(-4.5, 0.73, "Preliminary");
-
     text.SetTextSize(0.045);
     text.SetTextFont(42);
-    if (plot_ratio == 'y')   text.DrawLatex(0.8, 0.96, "Run 256677"); //text.DrawLatex(0.6, 0.96, "Run 2015D - 2.1 fb^{-1} (13 TeV)");
-    else text.DrawLatex(2.5, 0.502, "#sqrt{s} = 13 TeV");
-    //text.DrawLatex(-4, 0.4, "R = 0.4");
 
-    //text.SetTextSize(0.04/t_scale);
-    //text.SetTextFont(61);
-    //text.DrawLatex(-4.5, 0.72, "CMS");
-      
-    //text.SetTextSize(0.035/t_scale);
-    //text.SetTextFont(52);
-    //text.DrawLatex(-4.5, 0.67, "Preliminary");
+    if (ratio) text.DrawLatex(1-label.Length()/80., 0.96, label);
+    else       text.DrawLatex(1-label.Length()/68., 0.96, label);
+
+    //TString coneSize = dataName( dataName.Last('.')-1, 1 );
+    //text.DrawLatex( 0.25, 0.75, "R = 0." + coneSize );
 
     gPad->RedrawAxis();
 
-    if (plot_ratio == 'y'){
+    if (ratio){
 
       bottom->cd();
       TH1D* h2 = new TH1D("h2", "h2", ETA_BINS, etabins);
@@ -467,35 +419,36 @@ void offsetpT_stack(){
       TH1D* ratio_Data = (TH1D*) hist_Data->Clone("ratio_Data");
       ratio_Data->Divide(ratio_MC);
 
-      if (pf_choice == ne) ratio_Data->SetAxisRange(-2.9, 2.9);
-      //else if (pf_choice == hfe) //em deposits
-      else if (pf_choice == nh) ratio_Data->SetAxisRange(-2.9, 2.9);
-      //else if (pf_choice == hfh) //hadronic deposits
-      else if (pf_choice == chu) ratio_Data->SetAxisRange(-2.9, 2.9);
-      else if (pf_choice == chm) ratio_Data->SetAxisRange(-2.9, 2.9);
-      else if (pf_choice == untrk) ratio_Data->SetAxisRange(-2.9, 2.9);
-      else if (pf_choice == hf_dep) ratio_Data->SetAxisRange(-3, 3);
+      if (id == ne) ratio_Data->SetAxisRange(-2.9, 2.9);
+      //else if (id == hfe) //em deposits
+      else if (id == nh) ratio_Data->SetAxisRange(-2.9, 2.9);
+      //else if (id == hfh) //hadronic deposits
+      else if (id == chu) ratio_Data->SetAxisRange(-2.9, 2.9);
+      else if (id == chm) ratio_Data->SetAxisRange(-2.9, 2.9);
+      else if (id == untrk) ratio_Data->SetAxisRange(-2.9, 2.9);
+      else if (id == hf_dep) ratio_Data->SetAxisRange(-3, 3);
       //else
 
-      h2->GetXaxis()->SetLabelSize(0.05/b_scale);
+      h2->GetXaxis()->SetLabelSize(0.04/b_scale);
       h2->GetXaxis()->SetTickLength(0.03/b_scale);
-      h2->GetXaxis()->SetTitleSize(0.06/b_scale);
-      h2->GetXaxis()->SetTitleOffset(0.75);
+      h2->GetXaxis()->SetTitleSize(0.05/b_scale);
+      h2->GetXaxis()->SetTitleOffset(0.8);
       h2->GetXaxis()->SetTitle("#eta");
-      h2->GetYaxis()->SetRangeUser(0.5, 1.5);
+      h2->GetYaxis()->SetRangeUser(0, 2);
       h2->GetYaxis()->SetNdivisions(5, 3, 0);
-      h2->GetYaxis()->SetLabelSize(0.05/b_scale);
+      h2->GetYaxis()->SetLabelSize(0.04/b_scale);
       h2->GetYaxis()->SetTitle("Data/MC");
-      h2->GetYaxis()->SetTitleSize(0.055/b_scale);
-      h2->GetYaxis()->SetTitleOffset(0.43);
+      h2->GetYaxis()->CenterTitle(true);
+      h2->GetYaxis()->SetTitleSize(0.05/b_scale);
+      h2->GetYaxis()->SetTitleOffset(0.4);
 
       ratio_Data->SetMarkerStyle(24);
       h2->Draw();
-      ratio_Data->Draw("sameP");
+      ratio_Data->Draw("samePE");
     }
   }
 
-  c->Print("./plots/" + var_type + "/stack_" + var_type + Form("%i-%i_%i", n1, n2, pf_choice) + ".pdf");
+  c->Print("plots/stack_" + ids[id] + "_" + bin_var + to_string(n1) + ".pdf");
 }
 
 void setStyle(){

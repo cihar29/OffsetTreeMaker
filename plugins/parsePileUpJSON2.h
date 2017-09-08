@@ -5,100 +5,54 @@
 #include <fstream>
 #include <string>
 #include <map>
-#include <utility>
 
 using namespace std;
 
-map<int, map<int, float> > m_PU;
-const float MINBIAS_XS = 71300;
+map<int, map<int, map<int, float> > > m_PU;  //m_PU[run][ls][bx]
+const float MINBIAS_XS = 0.692;
 
-float getAvgPU(int run, int ls) {
+float getAvgPU(int run, int ls, int bx) {
 
-  return m_PU[run][ls];
+  return m_PU[run][ls][bx];
 }
 
-int parsePileUpJSON2(string filename="pileup_5_24_16.txt") {
-/*
+int parsePileUpJSON2(string filename="short_pileup_9_7_2016.txt") {
+
   //### Using Brilcalc ###//
   cout << "Opening " << filename << "...";
 
   string line;
   ifstream file(filename);
 
-  if (file.is_open()){
+  if (file.is_open()) {
     cout << "ok" << endl;
 
     //loop over lines in file
-    while ( getline(file,line) ){
+    while ( getline(file,line) ) {
 
-      string run_str, ls_str;
-      string str;
-      int delim_pos;
-      float PU = -1;
+      int delim_pos = line.find(' ');
+      if (delim_pos == -1) continue;
 
-      if ( line.at(0) != '#' ){
+      string run_str = line.substr(0, delim_pos);
+      line.erase(0, delim_pos + 1);
 
-        //loop over strings in line
-        for (int string_num=0; (delim_pos = line.find(",")) != -1; string_num++){
+      delim_pos = line.find(' ');
+      string ls_str = line.substr(0, delim_pos);
+      line.erase(0, delim_pos + 1);
 
-          str = line.substr(0, delim_pos);
-          line.erase(0, delim_pos + 1);
+      map<int, float> bx_PU;
 
-          if (string_num == 0)  //first string holds run number
-            run_str = str.substr(0, str.find(":"));
+      while ( (delim_pos = line.find(' ')) != -1) {
+        string bx = line.substr(0, delim_pos);
+        line.erase(0, delim_pos + 1);
 
-          else if (string_num == 1) //second string has ls
-            ls_str = str.substr(0, str.find(":"));
+        delim_pos = line.find(' ');
+        string lumi = line.substr(0, delim_pos);
+        line.erase(0, delim_pos + 1);
 
-          else if (string_num == 7) //eighth string has pu
-            PU = stof( str );
-        }
-        int run = stoi( run_str );
-        int ls = stoi( ls_str );
-
-        m_PU[run][ls] = PU;
+        bx_PU[stoi(bx)] = stof(lumi) * MINBIAS_XS;
       }
-    }
-    file.close();
-  }
-  else
-    cout << "Unable to open file" << endl;
-*/
-
-  //### Using Pileup JSON file ###//
-  cout << "Minimum Bias Cross Section: " << MINBIAS_XS << endl;
-  cout << "Opening " << filename << "...";
-
-  string line;
-  ifstream file(filename);
-
-  if (file.is_open()){
-    cout << "ok" << endl;
-
-    //loop over lines in file
-    while ( getline(file,line) ){
-
-      string str;
-      int delim_pos, run, ls;
-      float PU = -1;
-
-      if ( line.at(0) != '#' ){
-
-        //loop over strings in line
-        for (int string_num=0; (delim_pos = line.find(" ")) != -1; string_num++){
-
-          str = line.substr(0, delim_pos);
-          line.erase(0, delim_pos + 1);
-
-          if (string_num == 0)  //first string holds run number
-            run = stoi( str );
-
-          else if (string_num == 1) //second string has ls
-            ls = stoi( str );
-        }
-        PU = stod( line ) * MINBIAS_XS;
-        m_PU[run][ls] = PU;
-      }
+      m_PU[ stoi(run_str) ][ stoi(ls_str) ] = bx_PU;
     }
     file.close();
   }

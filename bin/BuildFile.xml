@@ -1,0 +1,4 @@
+<use name="FWCore/Framework"/>
+<use name="FWCore/ParameterSet"/>
+<use name="root"/>
+<bin name="histomaker" file="histomaker.cc"/>

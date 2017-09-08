@@ -24,6 +24,7 @@
 #include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/Framework/interface/LuminosityBlock.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/TrackReco/interface/Track.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
@@ -228,7 +229,7 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     bx = iEvent.bunchCrossing();
     event = iEvent.id().event();
 
-    mu = getAvgPU( run, lumi );
+    mu = getAvgPU( run, lumi, bx );
   }
 
 //------------ Primary Vertices ------------//
