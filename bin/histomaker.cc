@@ -59,6 +59,8 @@ int main(int argc, char* argv[]) {
   TString inName = isMC ? argv[4] : dataName;
   TString outName = inName( inName.Last('/')+1, inName.Last('.')-inName.Last('/')-1 );
   outName += "_R" + to_string( int(rCone*10) ) + ".root";
+  cout << "output:" << "\t" << outName << endl;
+  cout << "inName:" << "\t" << inName << endl;
 
   TFile* inFile = TFile::Open(inName);
 
@@ -76,11 +78,22 @@ int main(int argc, char* argv[]) {
     for (int i_nPU=0; i_nPU<MAXNPU; i_nPU++){
       hname = Form("p_offset_eta_nPU%i_", i_nPU) + ids[i_id];
       m_Profiles[hname] = new TProfile(hname, hname, nEta, etabins);
+      hname = Form("p_mikko_eta_nPU%i_",i_nPU) + ids[i_id];
+      m_Profiles[hname] = new TProfile(hname, hname, nEta, etabins);
     }
     for (int i_nPV=0; i_nPV<MAXNPV; i_nPV++){
       hname = Form("p_offset_eta_nPV%i_", i_nPV) + ids[i_id];
       m_Profiles[hname] = new TProfile(hname, hname, nEta, etabins);
     }
+
+    hname = "ptdensity_bb_" + ids[i_id];
+    m_Histos1D[hname] = new TH1F(hname,hname,100,0,5);
+    hname = "ptdensity_ec1_" + ids[i_id];
+    m_Histos1D[hname] = new TH1F(hname,hname,100,0,5);
+    hname = "ptdensity_ec2_" + ids[i_id];
+    m_Histos1D[hname] = new TH1F(hname,hname,100,0,5);
+    hname = "ptdensity_hf_" + ids[i_id];
+    m_Histos1D[hname] = new TH1F(hname,hname,100,0,5);
   }
 
   //hname = "nPV_all";
@@ -119,6 +132,7 @@ int main(int argc, char* argv[]) {
   TH1F* h_weights = 0;
   if (isMC) {
 
+    cout << " Reweighting with respect to:" << "\t" << dataName << endl;
     TFile* dataFile = TFile::Open(dataName);
     TTree* dTree = (TTree*) dataFile->Get("T");
 
@@ -154,6 +168,7 @@ int main(int argc, char* argv[]) {
   float jet_eta[nJets], jet_phi[nJets], jet_pt[nJets], jet_area[nJets];
   float jet_ch[nJets], jet_nh[nJets], jet_ne[nJets], jet_hfh[nJets], jet_hfe[nJets], jet_lep[nJets];
 */
+
   UChar_t f[numFlavors][nEta];
   float energy[nEta];
   float mu, rho;
@@ -204,6 +219,24 @@ int main(int argc, char* argv[]) {
         FillProfile(hname, eta, offpt, weight);
         hname = Form("p_offset_eta_nPV%i_", nPV) + ids[i_id];
         FillProfile(hname, eta, offpt, weight);
+
+        if (mu > 5) {
+          double area = 2 * M_PI * (etabins[ieta+1] - etabins[ieta]);
+          double mikko_offpt = energy[ieta] * f[i_id][ieta] * M_PI*rCone*rCone / 255. / cosh(eta) / area;
+          hname = Form("p_mikko_eta_nPU%i_", intmu) + ids[i_id];
+          FillProfile(hname, eta, mikko_offpt, weight); 
+          double ptdensity_permu_in_eta_stripe = mikko_offpt / (M_PI*rCone*rCone) / mu ;
+          ptdensity_permu_in_eta_stripe = (ptdensity_permu_in_eta_stripe>5 ? 4.99 : ptdensity_permu_in_eta_stripe) ;
+          if(fabs(eta)<1.3){
+            FillHist1D("ptdensity_bb_"+ids[i_id], ptdensity_permu_in_eta_stripe, weight);
+          } else if(abs(eta)<2.5) {
+           FillHist1D("ptdensity_ec1_"+ids[i_id], ptdensity_permu_in_eta_stripe, weight);
+          } else if(abs(eta)<3.0) {
+            FillHist1D("ptdensity_ec2_"+ids[i_id], ptdensity_permu_in_eta_stripe, weight);
+          } else {
+            FillHist1D("ptdensity_hf_"+ids[i_id], ptdensity_permu_in_eta_stripe, weight);
+          }
+        }
       }
     }
   } //end event loop
@@ -212,15 +245,27 @@ int main(int argc, char* argv[]) {
 
   TFile* outFile = new TFile(outName,"RECREATE");
   outFile->cd();
+  TDirectory* dir = (TDirectory*) outFile;
 
   for (int i_id=0; i_id<numFlavors; i_id++){
     outFile->mkdir( "offset_nPU/" + ids[i_id] );
     outFile->mkdir( "offset_nPV/" + ids[i_id] );
+    outFile->mkdir( "mikko_nPU/"  + ids[i_id] );
   }
+  outFile->mkdir( "ptdensity_/" );
 
-  for (map<TString, TH1*>::iterator hid = m_Histos1D.begin(); hid != m_Histos1D.end(); hid++)
-    hid->second->Write();
 
+  for (map<TString, TH1*>::iterator hid = m_Histos1D.begin(); hid != m_Histos1D.end(); hid++){
+    hname = hid->first;
+    if ( hname.Contains( "ptdensity_" ) ){
+      outFile->cd(outName + ":/ptdensity_/" );
+      hid->second->Write();
+    } 
+    else{
+      dir->cd(outName+":");
+      hid->second->Write();
+    }     
+  }
   for (map<TString, TH2*>::iterator hid = m_Histos2D.begin(); hid != m_Histos2D.end(); hid++)
     hid->second->Write();
 
@@ -235,6 +280,10 @@ int main(int argc, char* argv[]) {
     else if ( hname.Contains("p_offset_eta_nPV") ){
       TString id = hname( hname.Last('_')+1, hname.Length() );
       outFile->cd(outName + ":/offset_nPV/" + id);
+    }
+    else if ( hname.Contains("p_mikko_eta_nPU") ){
+      TString id = hname( hname.Last('_')+1, hname.Length() );
+      outFile->cd(outName + ":/mikko_nPU/" + id);
     }
     hid->second->Write();
   }

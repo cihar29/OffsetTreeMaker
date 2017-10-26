@@ -2,12 +2,23 @@
 
 # execute as ./run_stack.sh
 
-  mc="MC_R4.root"
-  data="Data_R4.root"
+  args=("$@")
+  if [ $# -lt 2 ] ; then
+    echo "Please provide run era (BCD,EF,FG,H) and Recorded Luminosity"
+  fi
+
+  if [ $# -eq 2 ] ; then
+
+    run_era=${args[0]}
+    luminosity=${args[1]}
+
+  fi
+  mc="root_files_R48/SingleNeutrino_MC_R4.root"
+  data="root_files_R48/Legacy_${run_era}_R4.root"
 
   var="nPU"
   ratio="true"
-  label="Run 2016 - 35.9 fb^{-1} (13 TeV)"
+  label="Run 2016${run_era} - ${luminosity} fb^{-1} (13 TeV)"
 
   cmds=( "root -l -b -q 'offsetpT_stack.c (\"$mc\", \"$data\", \"$var\", "all", $ratio, \"$label\")'"
          "root -l -b -q 'offsetpT_stack.c (\"$mc\", \"$data\", \"$var\", "ne",  $ratio, \"$label\")'"
