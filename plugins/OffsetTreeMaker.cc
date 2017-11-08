@@ -80,8 +80,6 @@ class OffsetTreeMaker : public edm::EDAnalyzer {
     float energy[ETA_BINS], eRMS[ETA_BINS], et[ETA_BINS];
     UChar_t f[numFlavors][ETA_BINS];  //energy fraction by flavor
 
-    float weight;
-
     ULong64_t event;
     int run, lumi, bx;
     float mu;
@@ -95,9 +93,12 @@ class OffsetTreeMaker : public edm::EDAnalyzer {
     float jet_eta[MAXJETS], jet_phi[MAXJETS], jet_pt[MAXJETS], jet_area[MAXJETS];
     float jet_ch[MAXJETS], jet_nh[MAXJETS], jet_ne[MAXJETS], jet_hfh[MAXJETS], jet_hfe[MAXJETS], jet_lep[MAXJETS];
 
+    vector<int> pf_type;
+    vector<float> pf_pt, pf_eta, pf_phi;
+
     TString RootFileName_;
     int numSkip_;
-    bool isMC_, reweight_;
+    bool isMC_, writeCands_;
 
     edm::EDGetTokenT< vector<reco::Vertex> > pvTag_;
     edm::EDGetTokenT< vector<reco::Track> > trackTag_;
@@ -107,7 +108,6 @@ class OffsetTreeMaker : public edm::EDAnalyzer {
     edm::EDGetTokenT<double> rhoC0Tag_;
     edm::EDGetTokenT<double> rhoCCTag_;
     edm::EDGetTokenT< vector<reco::PFJet> > pfJetTag_;
-    edm::EDGetTokenT< vector<reco::PFJet> > corrPfJetTag_;
 };
 
 OffsetTreeMaker::OffsetTreeMaker(const edm::ParameterSet& iConfig)
@@ -115,7 +115,7 @@ OffsetTreeMaker::OffsetTreeMaker(const edm::ParameterSet& iConfig)
   numSkip_ = iConfig.getParameter<int> ("numSkip");
   RootFileName_ = iConfig.getParameter<string>("RootFileName");
   isMC_ = iConfig.getParameter<bool>("isMC");
-  reweight_ = iConfig.getParameter<bool> ("reweight");
+  writeCands_ = iConfig.getParameter<bool>("writeCands");
   pvTag_ = consumes< vector<reco::Vertex> >( iConfig.getParameter<edm::InputTag>("pvTag") );
   trackTag_ = consumes< vector<reco::Track> >( iConfig.getParameter<edm::InputTag>("trackTag") );
   muTag_ = consumes< vector<PileupSummaryInfo> >( iConfig.getParameter<edm::InputTag>("muTag") );
@@ -124,7 +124,6 @@ OffsetTreeMaker::OffsetTreeMaker(const edm::ParameterSet& iConfig)
   rhoC0Tag_ = consumes<double>( iConfig.getParameter<edm::InputTag>("rhoC0Tag") );
   rhoCCTag_ = consumes<double>( iConfig.getParameter<edm::InputTag>("rhoCCTag") );
   pfJetTag_ = consumes< vector<reco::PFJet> >( iConfig.getParameter<edm::InputTag>("pfJetTag") );
-  corrPfJetTag_ = consumes< vector<reco::PFJet> >( iConfig.getParameter<edm::InputTag>("corrPfJetTag") );
 }
 
 // ------------ method called once each job just before starting event loop  ------------
@@ -137,9 +136,6 @@ void  OffsetTreeMaker::beginJob() {
   h = new TH1F("mu", "mu", 100, 0, 50);
   rand = new TRandom3;
 
-  if (isMC_ && reweight_)
-    tree->Branch("weight", &weight, "weight/F");
-
   if (!isMC_){
     parsePileUpJSON2();
 
@@ -147,6 +143,13 @@ void  OffsetTreeMaker::beginJob() {
     tree->Branch("lumi", &lumi, "lumi/I");
     tree->Branch("bx", &bx, "bx/I");
     tree->Branch("event", &event, "event/l");
+  }
+
+  if (writeCands_) {
+    tree->Branch("pf_type", "std::vector<int>",   &pf_type);
+    tree->Branch("pf_pt",   "std::vector<float>", &pf_pt);
+    tree->Branch("pf_eta",  "std::vector<float>", &pf_eta);
+    tree->Branch("pf_phi",  "std::vector<float>", &pf_phi);
   }
 
   tree->Branch("mu", &mu, "mu/F");
@@ -194,8 +197,8 @@ void  OffsetTreeMaker::beginJob() {
 // ------------ method called for each event  ------------
 void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
 
-  //counter++;
-  //if (counter%numSkip_ != 0) return;
+  counter++;
+  if (counter%numSkip_ != 0) return;
 
 //------------ Pileup ------------//
 
@@ -204,24 +207,6 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     iEvent.getByToken(muTag_, pileups);
 
     mu = pileups->at(1).getTrueNumInteractions();
-
-    if (reweight_){
-
-      float weights[] =
-      {1.00000, 0.18151, 0.15735, 0.09638, 0.09874, 0.03999, 0.00650, 0.00138, 0.03547, 0.06018, 
-       0.05149, 0.07109, 0.06168, 0.04222, 0.00329, 0.00002, 0.00006, 0.00616, 0.01464, 0.00606, 
-       0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 
-       0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 
-       0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 
-       0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 
-       0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 
-       0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 
-       0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 
-       0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000, 0.00000 };
-
-      int index = h->FindBin(mu);
-      weight = weights[index-1];
-    }
   }
   else{
     run = int(iEvent.id().run());
@@ -229,7 +214,8 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     bx = iEvent.bunchCrossing();
     event = iEvent.id().event();
 
-    mu = getAvgPU( run, lumi, bx );
+    //mu = getAvgPU( run, lumi, bx );
+    mu = getAvgPU( run, lumi );
   }
 
 //------------ Primary Vertices ------------//
@@ -278,6 +264,8 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   float e2[ETA_BINS] = {};  //energy squared
   int nPart[ETA_BINS] = {}; //number of particles per eta bin
 
+  pf_type.clear(); pf_pt.clear(); pf_eta.clear(); pf_phi.clear();
+
   vector<reco::PFCandidate>::const_iterator i_pf, endpf = pfCandidates->end();
   for (i_pf = pfCandidates->begin();  i_pf != endpf;  ++i_pf) {
 
@@ -314,6 +302,13 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     eFlavor[flavor][etaIndex] += e;
     e2[etaIndex] += (e*e);
     nPart[etaIndex] ++;
+
+    if (writeCands_) {
+      pf_type.push_back( static_cast<int>(flavor) );
+      pf_pt.push_back( i_pf->pt() );
+      pf_eta.push_back( i_pf->eta() );
+      pf_phi.push_back( i_pf->phi() );
+    }
   }
 
 //------------ Tracks ------------//
@@ -364,20 +359,20 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
 
 //------------ PF Jets ------------//
 
-  edm::Handle< vector<reco::PFJet> > corrPfJets;
-  iEvent.getByToken(corrPfJetTag_, corrPfJets);
+  edm::Handle< vector<reco::PFJet> > pfJets;
+  iEvent.getByToken(pfJetTag_, pfJets);
 
   ht = 0;
-  vector<reco::PFJet>::const_iterator i_jet, endjet = corrPfJets->end();
-  for (i_jet = corrPfJets->begin();  i_jet != endjet;  ++i_jet) {
+  vector<reco::PFJet>::const_iterator i_jet, endjet = pfJets->end();
+  for (i_jet = pfJets->begin();  i_jet != endjet;  ++i_jet) {
 
     float pt = i_jet->pt();
     if (pt > 10) ht += pt;
   }
 
-  corrPfJets->size()<MAXJETS ? nJets = corrPfJets->size() : nJets = MAXJETS;
+  pfJets->size()<MAXJETS ? nJets = pfJets->size() : nJets = MAXJETS;
   for (int i=0; i<nJets; i++){
-    reco::PFJet jet = corrPfJets->at(i);
+    reco::PFJet jet = pfJets->at(i);
 
     jet_eta[i] = jet.eta();
     jet_phi[i] = jet.phi();

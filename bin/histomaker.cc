@@ -211,7 +211,7 @@ int main(int argc, char* argv[]) {
         double offpt = 0;
 
         for(int jeta = ieta-10; jeta <= ieta+10; jeta++){
-          if( jeta<0 || jeta+1 >= nEta) continue;
+          if( jeta<0 || jeta+1 > nEta) continue;
 
           offpt += energy[jeta] * geo[ieta][jeta] * f[i_id][jeta] / 255.;
         }
@@ -339,7 +339,7 @@ void getGeometry(double (&geo)[nEta][nEta], const float& rCone){
 
     for(int jeta = ieta-10; jeta <= ieta+10; jeta++){   
 
-      if( jeta<0 || jeta+1 >= nEta) continue;
+      if( jeta<0 || jeta+1 > nEta) continue;
     
       double etaL = etabins[jeta];                    // left  edge of the eta strip
       double etaR = etabins[jeta+1];                  // right edge of the eta strip
