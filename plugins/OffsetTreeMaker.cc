@@ -2,7 +2,7 @@
 //
 // Package:    treemaker/OffsetTreeMaker
 // Class:      OffsetTreeMaker
-// 
+//
 /**\class OffsetTreeMaker OffsetTreeMaker.cc treemaker/OffsetTreeMaker/plugins/OffsetTreeMaker.cc
 
  Description: [one line class summary]
@@ -97,6 +97,7 @@ class OffsetTreeMaker : public edm::EDAnalyzer {
     vector<float> pf_pt, pf_eta, pf_phi;
 
     TString RootFileName_;
+    string puFileName_;
     int numSkip_;
     bool isMC_, writeCands_;
 
@@ -114,6 +115,7 @@ OffsetTreeMaker::OffsetTreeMaker(const edm::ParameterSet& iConfig)
 {
   numSkip_ = iConfig.getParameter<int> ("numSkip");
   RootFileName_ = iConfig.getParameter<string>("RootFileName");
+  puFileName_ = iConfig.getParameter<string>("puFileName");
   isMC_ = iConfig.getParameter<bool>("isMC");
   writeCands_ = iConfig.getParameter<bool>("writeCands");
   pvTag_ = consumes< vector<reco::Vertex> >( iConfig.getParameter<edm::InputTag>("pvTag") );
@@ -137,7 +139,7 @@ void  OffsetTreeMaker::beginJob() {
   rand = new TRandom3;
 
   if (!isMC_){
-    parsePileUpJSON2();
+    parsePileUpJSON2( puFileName_ );
 
     tree->Branch("run", &run, "run/I");
     tree->Branch("lumi", &lumi, "lumi/I");
@@ -214,8 +216,8 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     bx = iEvent.bunchCrossing();
     event = iEvent.id().event();
 
-    //mu = getAvgPU( run, lumi, bx );
-    mu = getAvgPU( run, lumi );
+    mu = getAvgPU( run, lumi, bx );
+    if (mu==0) return;
   }
 
 //------------ Primary Vertices ------------//

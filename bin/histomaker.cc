@@ -42,9 +42,9 @@ map<TString, TH2*> m_Histos2D;
 map<TString, TProfile*> m_Profiles;
 map<TString, TProfile2D*> m_Profiles2D;
 
-const int MAXNPU = 50;
-const int MAXNPV = 50;
-const int MAXRHO = 50;
+const int MAXNPU = 100;
+const int MAXNPV = 100;
+const int MAXRHO = 100;
 
 int main(int argc, char* argv[]) {
 
@@ -108,17 +108,17 @@ int main(int argc, char* argv[]) {
   m_Histos1D[hname] = new TH1F(hname,hname,2*MAXRHO,0,MAXRHO);
 
   //hname = "2h_nPV_nPU";
-  //m_Histos2D[hname] = new TH2F(hname,hname,100,0,MAXNPU,MAXNPV,0,MAXNPV);
+  //m_Histos2D[hname] = new TH2F(hname,hname,2*MAXNPU,0,MAXNPU,MAXNPV,0,MAXNPV);
   hname = "p_nPV_nPU";
   m_Profiles[hname] = new TProfile(hname,hname,2*MAXNPU,0,MAXNPU);
 
   //hname = "2h_rho_nPU";
-  //m_Histos2D[hname] = new TH2F(hname,hname,100,0,MAXNPU,100,0,MAXRHO);
+  //m_Histos2D[hname] = new TH2F(hname,hname,2*MAXNPU,0,MAXNPU,2*MAXRHO,0,MAXRHO);
   hname = "p_rho_nPU";
   m_Profiles[hname] = new TProfile(hname,hname,2*MAXNPU,0,MAXNPU);
 
   //hname = "2h_rho_nPV";
-  //m_Histos2D[hname] = new TH2F(hname,hname,MAXNPV,0,MAXNPV,100,0,MAXRHO);
+  //m_Histos2D[hname] = new TH2F(hname,hname,MAXNPV,0,MAXNPV,2*MAXRHO,0,MAXRHO);
   hname = "p_rho_nPV";
   m_Profiles[hname] = new TProfile(hname,hname,MAXNPV,0,MAXNPV);
 
@@ -185,7 +185,7 @@ int main(int argc, char* argv[]) {
   tree->SetBranchAddress("funtrk", f[untrk]);
   tree->SetBranchAddress("mu", &mu);
   tree->SetBranchAddress("rho", &rho);
-  tree->SetBranchAddress("nPV", &nPV);  
+  tree->SetBranchAddress("nPV", &nPV);
 
   //Loop Over Entries//
 
@@ -260,11 +260,11 @@ int main(int argc, char* argv[]) {
     if ( hname.Contains( "ptdensity_" ) ){
       outFile->cd(outName + ":/ptdensity_/" );
       hid->second->Write();
-    } 
+    }
     else{
       dir->cd(outName+":");
       hid->second->Write();
-    }     
+    }
   }
   for (map<TString, TH2*>::iterator hid = m_Histos2D.begin(); hid != m_Histos2D.end(); hid++)
     hid->second->Write();
@@ -337,10 +337,10 @@ void getGeometry(double (&geo)[nEta][nEta], const float& rCone){
   for (int ieta=0; ieta<nEta; ieta++){
     double eta = 0.5*(etabins[ieta] + etabins[ieta+1]);
 
-    for(int jeta = ieta-10; jeta <= ieta+10; jeta++){   
+    for(int jeta = ieta-10; jeta <= ieta+10; jeta++){
 
       if( jeta<0 || jeta+1 > nEta) continue;
-    
+
       double etaL = etabins[jeta];                    // left  edge of the eta strip
       double etaR = etabins[jeta+1];                  // right edge of the eta strip
       double etaC = 0.5*(etaL+etaR);                  // center of the eta strip
@@ -396,16 +396,16 @@ double areaS(double R, double x1, double x2){
 double dist(double R, double x1, double x2){
 //
 // Take a circle of radius R centered at (0,0).
-// This function calculates distance between a 
-// midpoint of x=x1 and x=x2 and the point on circle rim 
+// This function calculates distance between a
+// midpoint of x=x1 and x=x2 and the point on circle rim
 // along vertical line.
 //
 
    if( R<=0.) return 0.;
-   if(x1*x2>0 && fabs(x1) >= R && fabs(x2) >= R) return 0. ; // both lines outside the circle 
-                                                             // and on the same side of origin. 
+   if(x1*x2>0 && fabs(x1) >= R && fabs(x2) >= R) return 0. ; // both lines outside the circle
+                                                             // and on the same side of origin.
   if(fabs(x1)>R) x1 = TMath::Sign(R, x1);
-  if(fabs(x2)>R) x2 = TMath::Sign(R, x2); 
+  if(fabs(x2)>R) x2 = TMath::Sign(R, x2);
 
    double x = 0.5*( x1 + x2) ;
 

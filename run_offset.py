@@ -16,7 +16,7 @@ process.options.allowUnscheduled = cms.untracked.bool(True)
 readFiles = cms.untracked.vstring()
 process.source = cms.Source ("PoolSource", fileNames = readFiles)
 readFiles.extend( [
-  '/store/data/Run2016G/ZeroBias/AOD/07Aug17-v1/10000/D07C27A2-5690-E711-844F-B083FED429D5.root'
+  '/store/data/Run2017B/ZeroBias/AOD/17Nov2017-v1/20000/00D69F39-6BD3-E711-8F55-44A842CF05E6.root'
 ] );
 
 isMC = cms.bool(False)
@@ -35,7 +35,7 @@ else:
   process.load( "Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff" )
   process.load( "Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff" )
   from Configuration.AlCa.GlobalTag import GlobalTag
-  process.GlobalTag = GlobalTag( process.GlobalTag, '80X_mcRun2_asymptotic_2016_TrancheIV_v6' )
+  process.GlobalTag = GlobalTag( process.GlobalTag, '94X_dataRun2_ReReco17_forValidation' )
 
   # ZeroBias Trigger
   process.HLTZeroBias =cms.EDFilter("HLTHighLevel",
@@ -60,6 +60,7 @@ else:
 process.pf = cms.EDAnalyzer("OffsetTreeMaker",
     numSkip = cms.int32(101),
     RootFileName = cms.string("Offset" + OutputName + ".root"),
+    puFileName = cms.string("lumi-per-bx.root"),
     isMC = isMC,
     writeCands = cms.bool(True),
     trackTag = cms.InputTag("generalTracks"),
