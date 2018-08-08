@@ -21,10 +21,10 @@ float getAvgPU(int run, int ls) {
   return m_PU[run][ls];
 }
 
-float getAvgPU(int run, int ls, int bx) {
-  return m_PUbx[run][ls][bx];
-}
-
+//float getAvgPU(int run, int ls, int bx) {
+//  return m_PUbx[run][ls][bx];
+//}
+/*
 int parsePileUpJSON2(string filename="lumi-per-bx.root") {
 
   //### Lumi per BX ###//
@@ -53,9 +53,10 @@ int parsePileUpJSON2(string filename="lumi-per-bx.root") {
     }
   }
 
-/*
+*/
+int parsePileUpJSON2(string filename="pileup.txt") {
   //### Using Brilcalc ###//
-  cout << "Opening " << filename << "...";
+/*  cout << "Opening " << filename << "...";
 
   string line;
   ifstream file(filename);
@@ -98,8 +99,8 @@ int parsePileUpJSON2(string filename="lumi-per-bx.root") {
   }
   else
     cout << "Unable to open file" << endl;
+
 */
-/*
   //### Using Pileup JSON file ###//
   cout << "Minimum Bias Cross Section: " << MINBIAS_XS << endl;
   cout << "Opening " << filename << "...";
@@ -139,8 +140,9 @@ int parsePileUpJSON2(string filename="lumi-per-bx.root") {
   }
   else
     cout << "Unable to open file" << endl;
-*/
+
   return 0;
 }
 
 #endif //__parsePileUpJSON2_C__
+

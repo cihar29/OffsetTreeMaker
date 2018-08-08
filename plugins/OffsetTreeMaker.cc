@@ -216,7 +216,7 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
     bx = iEvent.bunchCrossing();
     event = iEvent.id().event();
 
-    mu = getAvgPU( run, lumi, bx );
+    mu = getAvgPU( run, lumi);
     if (mu==0) return;
   }
 
