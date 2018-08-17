@@ -1,4 +1,4 @@
-//Chad Harrington and Bahareh Roozbahani, August 2018, root -l -b -q l1fastjet.c
+//Chad Harrington and Bahareh Roozbahani, August 2018, root -l -b -q l1fastjet_adapted.c
 
 #include <iostream>
 #include <fstream>
