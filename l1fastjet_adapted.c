@@ -1,4 +1,4 @@
-//Chad Harrington and Bahareh Roozbahani, August 2018, root -l -b -q l1fastjet_adapted.c
+//Chad Harrington 7/28/2015, root -l -b -q l1fastjet.c
 
 #include <iostream>
 #include <fstream>
@@ -33,7 +33,7 @@ void l1fastjet_adapted(TString pf_type="chs"){
    4.191, 4.363, 4.538, 4.716, 4.889, 5.191};
 
   const int MAXRHO = 100;
-  int Rlabel = 8;
+  int Rlabel = 4;
   bool nPU_derived = true;
   bool rhoCentral = false;
 
@@ -41,14 +41,13 @@ void l1fastjet_adapted(TString pf_type="chs"){
   cout << "Run: " << " lumi " << endl;
   cin >> run_name >> luminosity;
 
-  TFile* mc_root = TFile::Open(Form("root_files_R48/MC_Run%s_17nov_R%i.root",run_name.c_str(),Rlabel) );
-  TFile* data_root = TFile::Open( Form("root_files_R48/Run%s_17nov_R%i.root",run_name.c_str(),Rlabel) );
+  TFile* mc_root = TFile::Open(Form("root_files_R48/SingleNeutrino_MC_R%i.root",Rlabel));
+  TFile* data_root = TFile::Open( Form("root_files_R48/Legacy_%s_R%i.root",run_name.c_str(),Rlabel ) );
+  //TFile* mc_root = TFile::Open(Form("Legacy_R8/SingleNeutrino_MC_R%i.root",Rlabel));
+  //TFile* data_root = TFile::Open( Form("Legacy_R8/Legacy_%s_R%i.root",run_name.c_str(),Rlabel ) );
 
-  ifstream scale_file( Form("plots/scalefactor/%s/Fall17_17Nov2017%s_DataMcSF_L1RC_AK%iPF", run_name.c_str(), run_name.c_str(), Rlabel) + pf_type + ".txt" );
-
-
-  //ifstream mc_file( Form("Fall17_17Nov2017_V8_MC_L1FastJet_AK%iPF", Rlabel) + pf_type + ".txt" );
-  ifstream mc_file( Form("Fall17_17Nov2017_V22_MC_L1FastJet_AK%iPF", Rlabel) + pf_type + ".txt" );
+  ifstream scale_file( Form("scales_Oct30_forMikko/Summer16_07Aug2017%s_V13_DataMcSF_L1RC_AK%iPF", run_name.c_str(), Rlabel) + pf_type + ".txt" );
+  ifstream mc_file( Form("Summer16_07Aug2017_V15_MC_L1FastJet_AK%iPF", Rlabel) + pf_type + ".txt" );
 
   string scale_line, mc_line, mcheader_line;
 
@@ -56,6 +55,7 @@ void l1fastjet_adapted(TString pf_type="chs"){
   //read first line
   getline(scale_file, scale_line);
   getline(mc_file, mcheader_line);
+  cout << mcheader_line << endl;
   TString mc_formula = TString(mcheader_line) ;
   double scale_p0[ETA_BINS], scale_p1[ETA_BINS], scale_p2[ETA_BINS];
   double mc_p0[ETA_BINS], mc_p1[ETA_BINS];
@@ -86,6 +86,7 @@ void l1fastjet_adapted(TString pf_type="chs"){
     }
     //last column after loop
     scale_p2[i] = stod(scale_line);
+    cout << " here " << scale_p0[i] << "\t" << scale_p1[i] << "\t" << scale_p2[i] << endl;
   }
   scale_file.close();
   cout <<   mc_formula << endl;
@@ -197,7 +198,7 @@ void l1fastjet_adapted(TString pf_type="chs"){
   double mc_rho_high = mc_rho_nPU->GetBinContent( mc_rho_nPU->FindBin( nPU_high ) );
 
   double eta[ETA_BINS], sf[ETA_BINS], sf_low[ETA_BINS], sf_high[ETA_BINS];
-  double new_p0[ETA_BINS], new_p1[ETA_BINS], new_p2[ETA_BINS] ,new_p3[ETA_BINS], new_p4[ETA_BINS], new_p5[ETA_BINS];
+  double new_p0[ETA_BINS], new_p1[ETA_BINS], new_p2[ETA_BINS] ,new_p3[ETA_BINS], new_p4[ETA_BINS], new_p5[ETA_BINS], new_p6[ETA_BINS];
 
   for (int i=0; i<ETA_BINS; i++){
 
@@ -224,19 +225,26 @@ void l1fastjet_adapted(TString pf_type="chs"){
     }
     else if ( mc_formula.Contains("pow(log(y/30.0),2)") || mc_formula.Contains("pow(log(y/90.0),2)") ) {
       cout << "new method" << endl;
-      new_p0[i] = sf[i] * mc_p0[i];
-      new_p1[i] = sf[i] * mc_p1[i] * double(mc_rho_mean) / double(rho_nominal); scale_rho_offset = rho_offset * (double(rho_nominal) / double(mc_rho_mean));
-      new_p2[i] = sf[i] * mc_p2[i] ;
-      new_p3[i] = sf[i] * mc_p3[i] ;
+      scale_rho_offset = rho_offset * (double(rho_nominal) / double(mc_rho_mean));
+      /*new_p0[i] = sf[i] * mc_p0[i] * double(mc_rho_mean) / double(rho_nominal);
+      new_p1[i] = sf[i] * mc_p1[i] * double(mc_rho_mean) / double(rho_nominal); 
+      new_p2[i] = sf[i] * mc_p2[i] * double(mc_rho_mean) / double(rho_nominal);
+      new_p3[i] = sf[i] * mc_p3[i] * double(mc_rho_mean) / double(rho_nominal);
       new_p4[i] = sf[i] * mc_p4[i] * double(mc_rho_mean) / double(rho_nominal);
-      new_p5[i] = sf[i] * mc_p5[i] * double(mc_rho_mean) / double(rho_nominal);
-      //cout << eta[i] << "\t" << scale_p0[i] << "\t" <<  scale_p1[i]*rho_nominal << "\t" <<  scale_p2[i]*rho_nominal*rho_nominal << "\t" << sf[i] << endl;
+      new_p5[i] = sf[i] * mc_p5[i] * double(mc_rho_mean) / double(rho_nominal);*/
+      new_p0[i] = mc_p0[i] ;
+      new_p1[i] = mc_p1[i] ; 
+      new_p2[i] = mc_p2[i] ;
+      new_p3[i] = mc_p3[i] ;
+      new_p4[i] = mc_p4[i] ;
+      new_p5[i] = mc_p5[i] ;
+      new_p6[i] = sf[i] * double(mc_rho_mean) / double(rho_nominal); // in the formula all parameter p0-p5 are getting scaled by p6
       std::stringstream stream;
       stream << fixed << setprecision(2) << scale_rho_offset;
       rho_offset_str = stream.str();
     }
   }
-  ofstream writeFile( Form("Fall17_17Nov2017%s_V22_Data_L1FastJet_AK%iPF", run_name.c_str(), Rlabel) + pf_type + ".txt" );
+  ofstream writeFile( Form("Summer16_07Aug2017%s_V14Mikko_L1fix_Data_L1FastJet_AK%iPF", run_name.c_str(), Rlabel) + pf_type + ".txt" );
 
 
   if (!mc_formula.Contains("pow(log(y/30.0),2)") && !mc_formula.Contains("pow(log(y/90.0),2)") ){
@@ -281,6 +289,7 @@ void l1fastjet_adapted(TString pf_type="chs"){
     //write first line
     getline(mc_file,mc_line);
     boost::replace_all(mc_line, "(x-20.0)", "(x-"+rho_offset_str+")");
+    boost::replace_all(mc_line,"(z/y)","(z/y)*[6]");
     writeFile << mc_line << endl;
 
     for (int i=0; getline(mc_file,mc_line); i++){
@@ -309,6 +318,8 @@ void l1fastjet_adapted(TString pf_type="chs"){
         writeFile << str << setw(15);
       }
         str = to_string(new_p5[i]);
+        writeFile << str << setw(15);
+        str = to_string(new_p6[i]);
         writeFile << str << endl;
       //writeFile << mc_line << endl;
     }
