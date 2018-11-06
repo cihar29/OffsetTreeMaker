@@ -123,7 +123,8 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
   if ( var_type.EqualTo("nPV") || var_type.EqualTo("nPU") )
     header = "{1\tJetEta\t3\tJetPt\tJetA\t" + var_type + "\t\tmax(0.0001,1-y*([0]+[1]*(z-1)+[2]*pow(z-1,2))/x)\tCorrection L1Offset}";
   else
-    header = "{1         JetEta              3          JetPt           JetA            Rho               max(0.0001,1-y*([0]+[1]*(z-1.519)+[2]*pow(z-1.519,2))/x)     Correction      L1FastJet}";
+    //header = "{1         JetEta              3          JetPt           JetA            Rho               max(0.0001,1-y*([0]+[1]*(z-1.519)+[2]*pow(z-1.519,2))/x)     Correction      L1FastJet}";
+    header = "{1         JetEta              3          JetPt           JetA            Rho               max(0.0001,1-y*([0]+[1]*(z-2.00)+[2]*pow(z-2.00,2))/x)     Correction      L1FastJet}";
 	
   writeMC << header << endl;
   writeData << header << endl;
