@@ -1,4 +1,4 @@
-//Chad Harrington 1/20/2015
+//Chad Harrington and Bahareh Roozbahani Dec 2018
 //EXECUTE as root -l -b -q offsetpT.c
 
 #include "TFile.h"
@@ -30,8 +30,22 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
   const double R = 0.4;
   int Rlabel = R*10;
 
-  TFile* mcFile = TFile::Open( Form("MC_RunBCD_R%i.root", Rlabel) );
-  TFile* dataFile = TFile::Open( Form("Data_RunBCD_R%i.root", Rlabel) );
+  string run_name; float luminosity;
+  cout << "Run: " << " lumi " << endl;
+  cin >> run_name >> luminosity;
+
+  //TFile* mcFile = TFile::Open(Form("SN_campaign2018_Run%s_R4.root",run_name.c_str()));
+  //TFile* dataFile = TFile::Open( Form("/uscms_data/d3/broozbah/2018_sep/CMSSW_10_2_0/src/L1Res/OffsetTreeMaker/Run%s_newcert_R4.root",run_name.c_str()) );
+  //TFile* dataFile = TFile::Open( Form("/uscms_data/d3/broozbah/2018_sep_RunCv3/CMSSW_10_1_8/src/L1/OffsetTreeMaker/RunCV3_R4.root",run_name.c_str()) );
+  //TFile* dataFile = TFile::Open( Form("/uscms_data/d3/broozbah/2018_sep_RunBs/CMSSW_10_1_7/src/L1/OffsetTreeMaker/Run%s_R4.root",run_name.c_str()) );
+  //TFile* dataFile = TFile::Open( Form("/uscms_data/d3/broozbah/2018_sep_RunBV11/CMSSW_10_1_6/src/L1/OffsetTreeMaker/Run%s_upto317885_R4.root",run_name.c_str()) );
+  //TFile* dataFile = TFile::Open( Form("/uscms_data/d3/broozbah/2018_DataMC/CMSSW_10_1_6/src/L1/OffsetTreeMaker/root_files_R48/Run%s_R4.root",run_name.c_str()) );
+
+  //TFile* mcFile = TFile::Open(Form("SN_campaign2018_Run%s_R4.root",run_name.c_str()));
+  //TFile* dataFile = TFile::Open( Form("/uscms_data/d3/broozbah/2018_DataMC/CMSSW_10_1_6/src/L1/OffsetTreeMaker/root_files_R48/Run%s_R4.root",run_name.c_str()) );
+
+  TFile* mcFile = TFile::Open("SN_2018_hl_R4.root");
+  TFile* dataFile = TFile::Open( "RunA_rereco_R4.root" );
 
   TString var_type = "nPU"; // nPU, nPV
   bool isIndirect = true;   // indirectRho
@@ -116,15 +130,19 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
     var_type = "indirectRho";
   }
 
-  ofstream writeMC("./plots/" + var_type + "/" + pf_type + Form("/Spring16_25nsV1_MC_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
-  ofstream writeData("./plots/" + var_type + "/" + pf_type + Form("/Spring16_25nsV1_DATA_L1RC_AK%iPF", Rlabel) + pf_type + ".txt");
+  ofstream writeMC("./plots/" + var_type + "/" + pf_type + Form("_%s/Fall18_17Sep2018%s_V1_MC_L1RC_AK%iPF", run_name.c_str(), run_name.c_str(), Rlabel) + pf_type + ".txt");
+  ofstream writeData("./plots/" + var_type + "/" + pf_type + Form("_%s/Fall18_17Sep2018%s_V1_DATA_L1RC_AK%iPF", run_name.c_str(), run_name.c_str(), Rlabel) + pf_type + ".txt");
 
   TString header;
+  // changes w.r.t previous versions: 1) TFormula had a bug and we modified accordingly 2) based on Mikko's calculation 1.519 changed to 2.00
   if ( var_type.EqualTo("nPV") || var_type.EqualTo("nPU") )
-    header = "{1\tJetEta\t3\tJetPt\tJetA\t" + var_type + "\t\tmax(0.0001,1-y*([0]+[1]*(z-1)+[2]*pow(z-1,2))/x)\tCorrection L1Offset}";
+    //header = "{1\tJetEta\t3\tJetPt\tJetA\t" + var_type + "\t\tmax(0.0001,1-y*([0]+[1]*(z-1)+[2]*pow(z-1,2))/x)\tCorrection L1Offset}";
+    //header = "{1\tJetEta\t3\tJetPt\tJetA\t" + var_type + "\t\tmax(0.0001,1-(y/x)*([0]+[1]*(z-1.519)+[2]*pow(z-1.519,2)))\tCorrection L1Offset}";
+    header = "{1\tJetEta\t3\tJetPt\tJetA\t" + var_type + "\t\tmax(0.0001,1-(y/x)*([0]+[1]*(z-2.00)+[2]*pow(z-2.00,2)))\tCorrection L1Offset}";
   else
     //header = "{1         JetEta              3          JetPt           JetA            Rho               max(0.0001,1-y*([0]+[1]*(z-1.519)+[2]*pow(z-1.519,2))/x)     Correction      L1FastJet}";
-    header = "{1         JetEta              3          JetPt           JetA            Rho               max(0.0001,1-y*([0]+[1]*(z-2.00)+[2]*pow(z-2.00,2))/x)     Correction      L1FastJet}";
+    //header = "{1         JetEta              3          JetPt           JetA            Rho               max(0.0001,1-(y/x)*([0]+[1]*(z-1.519)+[2]*pow(z-1.519,2)))     Correction      L1FastJet}";
+    header = "{1         JetEta              3          JetPt           JetA            Rho               max(0.0001,1-(y/x)*([0]+[1]*(z-2.00)+[2]*pow(z-2.00,2)))     Correction      L1FastJet}";
 	
   writeMC << header << endl;
   writeData << header << endl;
@@ -231,7 +249,7 @@ void offsetpT(int n1=1, int n2=25, float topX=15, float topY=30){
 
     cout << f_data->GetChisquare() / f_data->GetNDF() << "\t" << f_mc->GetChisquare() / f_mc->GetNDF() << endl;
 
-    c->Print("./plots/" + var_type + "/" + pf_type + "/" + pf_type + "_pT_" + var_type + Form("_eta%4.3f", etabins[i]) + ".pdf");
+    c->Print("./plots/" + var_type + "/" + pf_type + Form("_%s/", run_name.c_str()) + pf_type + "_pT_" + var_type + Form("_eta%4.3f", etabins[i]) + ".pdf");
     delete h;
     delete c;
   }
