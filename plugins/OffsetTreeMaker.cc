@@ -350,13 +350,11 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
       et_gme[ieta-1][iphi-1] =  h2_GME->GetBinContent(ieta, iphi);
       ch_et_gme[ieta-1][iphi-1] =  char(min(255, int( h2_GME->GetBinContent(ieta, iphi)/0.1)));
     }
-  }
- 
+  } 
   for (int ieta = 1; ieta != (ETA_BINS+1); ++ieta){
     vector<double> x;
     double et_sum = 0;
     for (int iphi = 1; iphi != PHI_BINS_GME+1; ++iphi){
-      et_sum +=  h2_finnereta->GetBinContent(ieta, iphi);
       x.push_back(h2_finnereta->GetBinContent(ieta, iphi));
       et_sum += h2_finnereta->GetBinContent(ieta, iphi);
     }
