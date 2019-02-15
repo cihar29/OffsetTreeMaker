@@ -285,6 +285,7 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   memset(energy, 0, sizeof(energy));    //reset arrays to zero
   memset(et, 0, sizeof(et));
   memset(etMED, 0, sizeof(etMED));
+  memset(etMEAN, 0, sizeof(etMEAN));
 
   nEta = ETA_BINS;
 
