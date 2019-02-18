@@ -292,7 +292,7 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   float eFlavor[numFlavors][ETA_BINS] = {};
   float e2[ETA_BINS] = {};  //energy squared
   int nPart[ETA_BINS] = {}; //number of particles per eta bin
-
+  //float et_gme_gen[ETA_BINS_GME][PHI_BINS_GME] = {};
   memset(et_gme,        0, sizeof(et_gme));
   memset(ch_et_gme,     0, sizeof(ch_et_gme));
   memset(et_gme_gen,    0, sizeof(et_gme_gen));
