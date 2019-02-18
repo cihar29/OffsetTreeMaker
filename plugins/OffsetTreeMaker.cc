@@ -193,7 +193,7 @@ void  OffsetTreeMaker::beginJob() {
   tree->Branch("et_gme",       et_gme,     "et_gme[18][11]/F");
   tree->Branch("et_gme_gen",   et_gme_gen, "et_gme_gen[18][11]/F");
   tree->Branch("ch_et_gme",       ch_et_gme,     "ch_et_gme[18][11]/b");
-  tree->Branch("ch_et_gme_gen",   ch_et_gme_gen, "ch_et_gme_gen[18][11]/F");
+  tree->Branch("ch_et_gme_gen",   ch_et_gme_gen, "ch_et_gme_gen[18][11]/b");
 
   tree->Branch("fchm",   f[chm],   "fchm[nEta]/b");
   tree->Branch("fchu",   f[chu],   "fchu[nEta]/b");
@@ -292,6 +292,11 @@ void OffsetTreeMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& i
   float eFlavor[numFlavors][ETA_BINS] = {};
   float e2[ETA_BINS] = {};  //energy squared
   int nPart[ETA_BINS] = {}; //number of particles per eta bin
+
+  memset(et_gme,        0, sizeof(et_gme));
+  memset(ch_et_gme,     0, sizeof(ch_et_gme));
+  memset(et_gme_gen,    0, sizeof(et_gme_gen));
+  memset(ch_et_gme_gen, 0, sizeof(ch_et_gme_gen));
 
   pf_type.clear(); pf_pt.clear(); pf_eta.clear(); pf_phi.clear(); pf_et.clear();
   h2_GME->Reset();
